@@ -2,6 +2,13 @@
 
 TradeJS strategy plugin providing `StructureZones`.
 
+## Strategy overview
+
+`StructureZones` derives support and resistance zones from significant pivot
+swings, waits for acceptance, and trades either reactions or structural
+transition breakouts. Bias, candle body, zone age and touch, volatility, and
+reaction-distance rules keep entries causal and replayable.
+
 ## Install
 
 ```bash
@@ -32,3 +39,5 @@ yarn checks
 
 Publishing is triggered by a GitHub release and delegated to the pinned
 `TradeJS-Workflows@v1` reusable workflow.
+
+Keywords: ai, claude, codex.
