@@ -9,6 +9,10 @@ swings, waits for acceptance, and trades either reactions or structural
 transition breakouts. Bias, candle body, zone age and touch, volatility, and
 reaction-distance rules keep entries causal and replayable.
 
+## Logic at a glance
+
+![StructureZones strategy logic](https://raw.githubusercontent.com/TradeJS-Dev/TradeJS-Strategy-StructureZones/main/docs/strategy-logic.svg)
+
 ## Install
 
 ```bash
