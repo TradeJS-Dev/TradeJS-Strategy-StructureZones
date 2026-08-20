@@ -13,6 +13,15 @@ reaction-distance rules keep entries causal and replayable.
 
 ![StructureZones strategy logic](https://raw.githubusercontent.com/TradeJS-Dev/TradeJS-Strategy-StructureZones/main/docs/strategy-logic.svg)
 
+## Signal on an example chart
+
+A significant swing first becomes an accepted support zone; the later qualified reaction, rather than the original pivot, produces the replayable entry.
+
+![StructureZones signal on an illustrative ticker chart](https://raw.githubusercontent.com/TradeJS-Dev/TradeJS-Strategy-StructureZones/main/docs/signal-example.svg)
+
+The illustration is schematic, not market data. Exact thresholds, confirmation
+rules, and risk parameters come from the active TradeJS strategy config.
+
 ## Install
 
 ```bash
