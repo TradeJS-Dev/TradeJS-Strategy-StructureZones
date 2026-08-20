@@ -1,6 +1,6 @@
 {
   "name": "@tradejs/strategy-structure-zones",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Pivot-derived structure-zone strategy trading reactions and transition breakouts with acceptance, bias, and zone-risk controls for TradeJS.",
   "type": "module",
   "packageManager": "yarn@4.13.0",
