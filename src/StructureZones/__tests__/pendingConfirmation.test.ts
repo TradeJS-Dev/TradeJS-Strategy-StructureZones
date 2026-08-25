@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { config as DEFAULT_CONFIG } from "../config";
-import { createStructureZonesCore } from "../core";
+import { buildStructureZonesStateKey, createStructureZonesCore } from "../core";
 import { createTestStateController } from "../../testUtils/stateControllerTestUtils";
 
 const makeCandle = (
@@ -102,6 +102,59 @@ const createCore = async ({
 };
 
 describe("StructureZones pending confirmation core lifecycle", () => {
+  it("keeps the legacy state key for false and isolates breakout-only snapshots", () => {
+    const legacy = makeConfig({
+      STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS: 0,
+      STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: false,
+    });
+    const absent = makeConfig({
+      STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS: 0,
+      STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: undefined,
+    });
+    const breakoutOnly = makeConfig({
+      STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS: 0,
+      STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true,
+    });
+
+    expect(buildStructureZonesStateKey(legacy)).toBe(
+      buildStructureZonesStateKey(absent),
+    );
+    expect(buildStructureZonesStateKey(legacy)).not.toContain(
+      "STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY",
+    );
+    expect(buildStructureZonesStateKey(breakoutOnly)).not.toBe(
+      buildStructureZonesStateKey(legacy),
+    );
+    expect(buildStructureZonesStateKey(breakoutOnly)).toContain(
+      '"STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY":true',
+    );
+  });
+
+  it("does not arm pending reaction state in breakout-only mode", async () => {
+    const stateController = createTestStateController();
+    const decision = {
+      timestamp: CANDIDATE.timestamp,
+      currentPrice: CANDIDATE.close,
+    };
+    const wrapper = await createCore({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true,
+      }),
+      initialData: HISTORY,
+      stateController,
+      decision,
+    });
+
+    expect(await wrapper.core(CANDIDATE as any, {} as any)).toEqual({
+      kind: "skip",
+      code: "NO_STRUCTURE_ZONE_SIGNAL",
+    });
+    expect(stateController.mock.results[0].value.snapshot()).toMatchObject({
+      signal: null,
+      pendingConfirmation: null,
+    });
+  });
+
   it("is idempotent, survives wrapper recreation, and isolates the full config", async () => {
     const stateController = createTestStateController();
     const decision = {

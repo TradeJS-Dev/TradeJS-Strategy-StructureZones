@@ -1,32 +1,55 @@
-import type { AiPayload, Signal } from "@tradejs/types";
+import type { AiPayload, Direction, Signal } from "@tradejs/types";
 import { structureZonesAiAdapter } from "../adapters/ai";
 
 const evaluate = ({
-  mtfAlignment,
-  decliners,
+  direction = "SHORT",
+  benchmarkRelativeStrength1h = -32,
+  distanceToTrailStopPct = -4.7,
 }: {
-  mtfAlignment?: string;
-  decliners?: number;
-}) =>
+  direction?: Direction;
+  benchmarkRelativeStrength1h?: number;
+  distanceToTrailStopPct?: number;
+} = {}) =>
   structureZonesAiAdapter.postProcessLocalAnalysis?.({
     signal: {
-      direction: "LONG",
-      prices: { takeProfitPrice: 110, stopLossPrice: 95 },
+      direction,
+      prices: { takeProfitPrice: 90, stopLossPrice: 105 },
     } as Signal,
     payload: {
       additionalIndicators: {
         baseContext: {
-          mtf: { summary: { mtfAlignment } },
-          relative: { marketBreadths: { top50: { decliners } } },
+          relative: {
+            benchmark: { relativeStrength1h: benchmarkRelativeStrength1h },
+          },
+          regime: {
+            trend: {
+              trendFollow: { distanceToTrailStopPct },
+            },
+          },
         },
       },
     } as unknown as AiPayload,
-    analysis: { direction: "LONG", quality: 5 },
+    analysis: { direction, quality: 5 },
   });
 
 describe("StructureZones local AI gate", () => {
-  it("rejects the previously calibrated approval pocket", () => {
-    expect(evaluate({ mtfAlignment: "aligned_bull", decliners: 1 })).toEqual(
+  it("approves the frozen SHORT boundary", () => {
+    expect(evaluate()).toEqual(
+      expect.objectContaining({
+        direction: "SHORT",
+        quality: 4,
+        approved: true,
+        gateDecision: "approved",
+      }),
+    );
+  });
+
+  it.each([
+    ["LONG direction", { direction: "LONG" as Direction }],
+    ["benchmark threshold", { benchmarkRelativeStrength1h: -31.999 }],
+    ["trail threshold", { distanceToTrailStopPct: -4.699 }],
+  ])("rejects outside the frozen rule: %s", (_name, input) => {
+    expect(evaluate(input)).toEqual(
       expect.objectContaining({
         direction: null,
         quality: 3,
@@ -36,12 +59,19 @@ describe("StructureZones local AI gate", () => {
     );
   });
 
-  it.each([
-    { mtfAlignment: "aligned_bull", decliners: 0 },
-    { mtfAlignment: "aligned_bear", decliners: 1 },
-    {},
-  ])("rejects outside the calibrated pocket: %p", (input) => {
-    expect(evaluate(input)).toEqual(
+  it("rejects when either causal feature is missing", () => {
+    const result = structureZonesAiAdapter.postProcessLocalAnalysis?.({
+      signal: {
+        direction: "SHORT",
+        prices: { takeProfitPrice: 90, stopLossPrice: 105 },
+      } as Signal,
+      payload: {
+        additionalIndicators: { baseContext: {} },
+      } as unknown as AiPayload,
+      analysis: { direction: "SHORT", quality: 5 },
+    });
+
+    expect(result).toEqual(
       expect.objectContaining({
         direction: null,
         quality: 3,

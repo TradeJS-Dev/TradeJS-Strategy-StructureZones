@@ -218,76 +218,86 @@ const getRecentBufferedCandles = (
     ? []
     : state.candles.slice(Math.max(0, state.candles.length - count));
 
-const getConfigNumbers = (config: StructureZonesConfig) => ({
-  pivotLength: Math.max(
-    2,
-    Math.floor(config.STRUCTURE_ZONES_PIVOT_LENGTH ?? 5),
-  ),
-  atrLength: Math.max(5, Math.floor(config.STRUCTURE_ZONES_ATR_LENGTH ?? 14)),
-  minSwingAtr: Math.max(
-    0.1,
-    Number(config.STRUCTURE_ZONES_MIN_SWING_ATR ?? 0.8),
-  ),
-  zoneWidthAtr: Math.max(
-    0.05,
-    Number(config.STRUCTURE_ZONES_ZONE_WIDTH_ATR ?? 0.5),
-  ),
-  acceptBars: Math.max(2, Math.floor(config.STRUCTURE_ZONES_ACCEPT_BARS ?? 2)),
-  reactionCloseBeyondZone: Boolean(
-    config.STRUCTURE_ZONES_REACTION_CLOSE_BEYOND_ZONE,
-  ),
-  requireReactionBody: Boolean(config.STRUCTURE_ZONES_REQUIRE_REACTION_BODY),
-  requireBiasAlignment: Boolean(
-    config.STRUCTURE_ZONES_REQUIRE_BIAS_ALIGNMENT ?? true,
-  ),
-  minReactionDistanceAtrLong: Math.max(
-    0,
-    resolveDirectionalConfigNumber({
-      config,
-      key: "STRUCTURE_ZONES_MIN_REACTION_DISTANCE_ATR",
-      direction: "LONG",
-      fallback: 0.1,
-    }),
-  ),
-  minReactionDistanceAtrShort: Math.max(
-    0,
-    resolveDirectionalConfigNumber({
-      config,
-      key: "STRUCTURE_ZONES_MIN_REACTION_DISTANCE_ATR",
-      direction: "SHORT",
-      fallback: 0.1,
-    }),
-  ),
-  minZoneAgeBars: Math.max(
-    0,
-    Math.floor(Number(config.STRUCTURE_ZONES_MIN_ZONE_AGE_BARS ?? 0)),
-  ),
-  maxZoneAgeBars: Math.max(
-    0,
-    Math.floor(Number(config.STRUCTURE_ZONES_MAX_ZONE_AGE_BARS ?? 0)),
-  ),
-  minTouchOrdinal: Math.max(
-    1,
-    Math.floor(Number(config.STRUCTURE_ZONES_MIN_TOUCH_ORDINAL ?? 1)),
-  ),
-  maxTouchOrdinal: Math.max(
-    0,
-    Math.floor(Number(config.STRUCTURE_ZONES_MAX_TOUCH_ORDINAL ?? 0)),
-  ),
-  pendingConfirmationMaxBars: Math.max(
-    0,
-    Math.floor(
-      Number(config.STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS ?? 0),
+const getConfigNumbers = (config: StructureZonesConfig) => {
+  const transitionBreakoutOnly = Boolean(
+    config.STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY,
+  );
+
+  return {
+    pivotLength: Math.max(
+      2,
+      Math.floor(config.STRUCTURE_ZONES_PIVOT_LENGTH ?? 5),
     ),
-  ),
-  tradeTransitionBreakouts: Boolean(
-    config.STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS,
-  ),
-  maxFigurePoints: Math.max(
-    20,
-    Math.floor(config.STRUCTURE_ZONES_MAX_FIGURE_POINTS ?? 180),
-  ),
-});
+    atrLength: Math.max(5, Math.floor(config.STRUCTURE_ZONES_ATR_LENGTH ?? 14)),
+    minSwingAtr: Math.max(
+      0.1,
+      Number(config.STRUCTURE_ZONES_MIN_SWING_ATR ?? 0.8),
+    ),
+    zoneWidthAtr: Math.max(
+      0.05,
+      Number(config.STRUCTURE_ZONES_ZONE_WIDTH_ATR ?? 0.5),
+    ),
+    acceptBars: Math.max(
+      2,
+      Math.floor(config.STRUCTURE_ZONES_ACCEPT_BARS ?? 2),
+    ),
+    reactionCloseBeyondZone: Boolean(
+      config.STRUCTURE_ZONES_REACTION_CLOSE_BEYOND_ZONE,
+    ),
+    requireReactionBody: Boolean(config.STRUCTURE_ZONES_REQUIRE_REACTION_BODY),
+    requireBiasAlignment: Boolean(
+      config.STRUCTURE_ZONES_REQUIRE_BIAS_ALIGNMENT ?? true,
+    ),
+    minReactionDistanceAtrLong: Math.max(
+      0,
+      resolveDirectionalConfigNumber({
+        config,
+        key: "STRUCTURE_ZONES_MIN_REACTION_DISTANCE_ATR",
+        direction: "LONG",
+        fallback: 0.1,
+      }),
+    ),
+    minReactionDistanceAtrShort: Math.max(
+      0,
+      resolveDirectionalConfigNumber({
+        config,
+        key: "STRUCTURE_ZONES_MIN_REACTION_DISTANCE_ATR",
+        direction: "SHORT",
+        fallback: 0.1,
+      }),
+    ),
+    minZoneAgeBars: Math.max(
+      0,
+      Math.floor(Number(config.STRUCTURE_ZONES_MIN_ZONE_AGE_BARS ?? 0)),
+    ),
+    maxZoneAgeBars: Math.max(
+      0,
+      Math.floor(Number(config.STRUCTURE_ZONES_MAX_ZONE_AGE_BARS ?? 0)),
+    ),
+    minTouchOrdinal: Math.max(
+      1,
+      Math.floor(Number(config.STRUCTURE_ZONES_MIN_TOUCH_ORDINAL ?? 1)),
+    ),
+    maxTouchOrdinal: Math.max(
+      0,
+      Math.floor(Number(config.STRUCTURE_ZONES_MAX_TOUCH_ORDINAL ?? 0)),
+    ),
+    pendingConfirmationMaxBars: Math.max(
+      0,
+      Math.floor(
+        Number(config.STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS ?? 0),
+      ),
+    ),
+    transitionBreakoutOnly,
+    tradeTransitionBreakouts:
+      transitionBreakoutOnly ||
+      Boolean(config.STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS),
+    maxFigurePoints: Math.max(
+      20,
+      Math.floor(config.STRUCTURE_ZONES_MAX_FIGURE_POINTS ?? 180),
+    ),
+  };
+};
 
 const getWindow = (
   state: Pick<EngineState, "candles" | "candleStartIndex">,
@@ -483,6 +493,7 @@ export const createStructureZonesEngine = ({
     minTouchOrdinal,
     maxTouchOrdinal,
     pendingConfirmationMaxBars,
+    transitionBreakoutOnly,
     tradeTransitionBreakouts,
     maxFigurePoints,
   } = getConfigNumbers(config);
@@ -708,6 +719,7 @@ export const createStructureZonesEngine = ({
         state.resistanceZone.bottom - close,
       );
       const longReaction =
+        !transitionBreakoutOnly &&
         supportTouched &&
         lifecycleAccepted(supportZoneAgeBars, state.supportTouchOrdinal) &&
         supportReactionClose &&
@@ -716,6 +728,7 @@ export const createStructureZonesEngine = ({
         longReactionDistance >= minReactionDistanceAtrLong * atr &&
         marketState !== "Transition";
       const shortReaction =
+        !transitionBreakoutOnly &&
         resistanceTouched &&
         lifecycleAccepted(
           resistanceZoneAgeBars,

@@ -40,6 +40,26 @@ const makeConfig = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as any;
 
+const TRANSITION_BREAKDOWN_HISTORY = [
+  makeCandle(0, 100, 102, 98, 100),
+  makeCandle(1, 101, 104, 99, 102),
+  makeCandle(2, 105, 110, 100, 108),
+  makeCandle(3, 103, 106, 97, 102),
+  makeCandle(4, 98, 104, 94, 96),
+  makeCandle(5, 94, 103, 90, 92),
+  makeCandle(6, 99, 108, 95, 105),
+  makeCandle(7, 106, 112, 99, 110),
+  makeCandle(8, 115, 120, 100, 118),
+  makeCandle(9, 109, 114, 103, 108),
+  makeCandle(10, 105, 110, 101, 104),
+  makeCandle(11, 103, 108, 100, 102),
+  makeCandle(12, 104, 109, 102, 105),
+  makeCandle(13, 105, 108, 103, 105),
+  makeCandle(14, 97, 99, 94, 95),
+];
+
+const TRANSITION_BREAKDOWN = makeCandle(15, 96, 98, 93, 94);
+
 describe("StructureZones engine", () => {
   it("builds support and resistance zones from confirmed swings", () => {
     const engine = createStructureZonesEngine({ config: makeConfig() });
@@ -501,5 +521,116 @@ describe("StructureZones engine", () => {
       kind: "support_reaction",
       touchOrdinal: 2,
     });
+  });
+
+  it("keeps the legacy false path exact and suppresses non-Transition reactions only when enabled", () => {
+    const history = [
+      makeCandle(0, 100, 102, 98, 100),
+      makeCandle(1, 101, 104, 99, 102),
+      makeCandle(2, 102, 110, 100, 108),
+      makeCandle(3, 108, 106, 101, 103),
+      makeCandle(4, 103, 105, 96, 99),
+      makeCandle(5, 99, 104, 94, 96),
+      makeCandle(6, 96, 103, 95, 101),
+      makeCandle(7, 101, 105, 97, 103),
+    ];
+    const explicitFalse = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: false,
+      }),
+    });
+    const absent = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: undefined,
+      }),
+    });
+    const breakoutOnly = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true,
+      }),
+    });
+    history.forEach((candle) => {
+      expect(explicitFalse.next(candle as any)).toEqual(
+        absent.next(candle as any),
+      );
+      breakoutOnly.next(candle as any);
+    });
+    const reaction = makeCandle(8, 95, 98, 94.5, 97);
+
+    expect(explicitFalse.next(reaction as any)).toEqual(
+      absent.next(reaction as any),
+    );
+    expect(explicitFalse.getState().signal).toMatchObject({
+      direction: "LONG",
+      kind: "support_reaction",
+      marketState: "Range",
+    });
+    expect(breakoutOnly.next(reaction as any)).toMatchObject({
+      signal: null,
+      snapshot: { marketState: "Range" },
+    });
+  });
+
+  it("forces only SHORT support breakdowns through Transition acceptance", () => {
+    const disabled = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: false,
+      }),
+      initialCandles: TRANSITION_BREAKDOWN_HISTORY as any,
+    });
+    const breakoutOnly = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true,
+      }),
+      initialCandles: TRANSITION_BREAKDOWN_HISTORY as any,
+    });
+
+    expect(disabled.next(TRANSITION_BREAKDOWN as any)).toMatchObject({
+      signal: null,
+      snapshot: { marketState: "Transition", acceptBelowLower: true },
+    });
+    expect(breakoutOnly.next(TRANSITION_BREAKDOWN as any).signal).toMatchObject(
+      {
+        direction: "SHORT",
+        kind: "support_breakdown",
+        marketState: "Transition",
+      },
+    );
+  });
+
+  it("forces only LONG resistance breakouts and replays isolated state deterministically", () => {
+    const history = TRANSITION_BREAKDOWN_HISTORY.map(mirrorCandle);
+    const breakout = mirrorCandle(TRANSITION_BREAKDOWN);
+    const config = makeConfig({
+      STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+      STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true,
+    });
+    const continuous = createStructureZonesEngine({ config });
+    history.forEach((candle) => continuous.next(candle as any));
+    const replayed = createStructureZonesEngine({
+      config,
+      initialCandles: history as any,
+    });
+    const isolatedLegacy = createStructureZonesEngine({
+      config: makeConfig({
+        STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: false,
+        STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: false,
+      }),
+      initialCandles: history as any,
+    });
+
+    const expected = continuous.next(breakout as any);
+    expect(replayed.next(breakout as any)).toEqual(expected);
+    expect(expected.signal).toMatchObject({
+      direction: "LONG",
+      kind: "resistance_breakout",
+      marketState: "Transition",
+    });
+    expect(isolatedLegacy.next(breakout as any).signal).toBeNull();
   });
 });

@@ -7,7 +7,10 @@ import {
 import { StructureZonesConfig } from "../config";
 import { StructureZonesSignalContext } from "../engine";
 import { buildStructureZonesGuardrailContext } from "../guardrails";
-import { withStrategyLocalAiGate } from "@tradejs/strategy-kit/ai-gate";
+import {
+  getAiPayloadNumber,
+  withStrategyLocalAiGate,
+} from "@tradejs/strategy-kit/ai-gate";
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value != null && !Array.isArray(value)
@@ -125,7 +128,24 @@ Interpretation rules for StructureZones:
 export const structureZonesAiAdapter = withStrategyLocalAiGate(
   structureZonesBaseAiAdapter,
   {
-    id: "structure_zones_disabled_2026_08_12",
-    approves: () => false,
+    id: "structure_zones_transition_breakout_short_benchmark_panic_deep_trail_2026_08_25",
+    approves: ({ signal, payload }) => {
+      const benchmarkRelativeStrength1h = getAiPayloadNumber(
+        payload,
+        "additionalIndicators.baseContext.relative.benchmark.relativeStrength1h",
+      );
+      const distanceToTrailStopPct = getAiPayloadNumber(
+        payload,
+        "additionalIndicators.baseContext.regime.trend.trendFollow.distanceToTrailStopPct",
+      );
+
+      return (
+        signal.direction === "SHORT" &&
+        benchmarkRelativeStrength1h != null &&
+        benchmarkRelativeStrength1h <= -32 &&
+        distanceToTrailStopPct != null &&
+        distanceToTrailStopPct <= -4.7
+      );
+    },
   },
 );

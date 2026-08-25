@@ -61,6 +61,7 @@ export const config = {
   STRUCTURE_ZONES_MIN_TREND_PERSISTENCE_LONG: 0,
   STRUCTURE_ZONES_MIN_TREND_PERSISTENCE_SHORT: 0.5,
   STRUCTURE_ZONES_TRADE_TRANSITION_BREAKOUTS: true,
+  STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: false,
   STRUCTURE_ZONES_STOP_ZONE_BUFFER_MULT: 0.2,
   STRUCTURE_ZONES_STOP_BUFFER_PCT: 0.03,
   STRUCTURE_ZONES_TARGET_R_MULT: 2,
@@ -82,8 +83,15 @@ export const config = {
 } as const;
 
 export type StructureZonesConfig = StrategyConfig &
-  Omit<typeof config, "BACKTEST_PRICE_MODE" | "LONG" | "SHORT"> & {
+  Omit<
+    typeof config,
+    | "BACKTEST_PRICE_MODE"
+    | "LONG"
+    | "SHORT"
+    | "STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY"
+  > & {
     BACKTEST_PRICE_MODE: BacktestPriceMode;
     LONG: StructureZonesSideConfig;
     SHORT: StructureZonesSideConfig;
+    STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: boolean;
   };

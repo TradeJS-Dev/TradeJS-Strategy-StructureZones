@@ -47,7 +47,8 @@ const buildLegacyStructureZonesStateKey = (config: StructureZonesConfig) =>
     maxFigurePoints: config.STRUCTURE_ZONES_MAX_FIGURE_POINTS,
   });
 
-const buildStructureZonesStateKey = (config: StructureZonesConfig) =>
+export const buildStructureZonesStateKey = (config: StructureZonesConfig) =>
+  Boolean(config.STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY) ||
   Math.max(
     0,
     Math.floor(
