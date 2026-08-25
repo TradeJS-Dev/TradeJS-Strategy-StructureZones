@@ -43,6 +43,13 @@ with its strategy definitions, manifests, default configs, and public AI/ML
 adapters. Strategy implementation changes are released from this repository,
 independently of the TradeJS engine.
 
+## Transition-breakout-only mode
+
+Set `STRUCTURE_ZONES_TRANSITION_BREAKOUT_ONLY: true` to suppress support and
+resistance reactions and emit only accepted structural breakouts while the
+market state is `Transition`. The default is `false`, which preserves the
+existing reaction and configured transition-breakout behavior.
+
 ## Development
 
 ```bash
