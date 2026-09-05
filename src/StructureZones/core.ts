@@ -12,6 +12,7 @@ import {
 import { buildStructureZonesFigures } from "./figures";
 import { getStructureZonesCoreFilterSkipCode } from "./filters";
 import { resolveDirectionalConfigNumber } from "@tradejs/strategy-kit/config";
+import { buildTradeEconomics } from "@tradejs/strategy-kit/risk";
 
 const isOpenPosition = (position: Position | null): position is Position =>
   Boolean(
@@ -167,11 +168,19 @@ export const createStructureZonesCore: CreateStrategyCore<
       signal.direction === "LONG"
         ? currentPrice + riskDistance * targetR
         : currentPrice - riskDistance * targetR;
-    const riskRatio = riskDistance > 0 ? targetR : 0;
-    const rawQty =
-      riskDistance > 0 ? Number(config.MAX_LOSS_VALUE ?? 0) / riskDistance : 0;
-    const feeBuffer = 1 + Math.max(0, Number(config.FEE_PERCENT ?? 0)) / 100;
-    const qty = rawQty / feeBuffer;
+    const economics = buildTradeEconomics({
+      entryPrice: currentPrice,
+      stopLossPrice,
+      takeProfitPrice,
+      feeRate: config.RISK_FEE_RATE,
+      slippageBps: config.RISK_SLIPPAGE_BPS + config.RISK_MARKET_IMPACT_BPS,
+    });
+    // Preserve this strategy's gross-RR admission policy; costs affect sizing.
+    const riskRatio = economics.grossRiskRatio;
+    const qty =
+      riskDistance > 0 && economics.lossPerUnit > 0
+        ? Number(config.MAX_LOSS_VALUE ?? 0) / economics.lossPerUnit
+        : 0;
 
     if (
       (signal.direction === "LONG" && stopLossPrice >= currentPrice) ||
