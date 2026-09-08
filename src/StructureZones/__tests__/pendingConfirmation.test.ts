@@ -102,6 +102,31 @@ const createCore = async ({
 };
 
 describe("StructureZones pending confirmation core lifecycle", () => {
+  it("sizes a confirmed entry including both fees and adverse slippage", async () => {
+    const decision = {
+      timestamp: CONFIRMATION.timestamp,
+      currentPrice: CONFIRMATION.close,
+    };
+    const { core } = await createCore({
+      config: makeConfig({ RISK_FEE_RATE: 0.001, RISK_SLIPPAGE_BPS: 10 }),
+      initialData: [...HISTORY, CANDIDATE],
+      stateController: createTestStateController(),
+      decision,
+    });
+    const result = await core(CONFIRMATION as any, {} as any);
+    expect(result.kind).toBe("entry");
+    if (result.kind !== "entry") throw new Error("Expected entry");
+    const { qty, stopLossPrice } = result.orderPlan;
+    const isLong =
+      result.entryContext?.direction === "LONG" ||
+      (result as any).direction === "LONG";
+    const entryFill = 97 * (isLong ? 1.001 : 0.999);
+    const stopFill = stopLossPrice * (isLong ? 0.999 : 1.001);
+    const realizedStopLoss =
+      (Math.abs(entryFill - stopFill) + (entryFill + stopFill) * 0.001) * qty;
+    expect(realizedStopLoss).toBeLessThanOrEqual(10.00001);
+    expect(realizedStopLoss).toBeGreaterThan(9.999);
+  });
   it("keeps the legacy state key for false and isolates breakout-only snapshots", () => {
     const legacy = makeConfig({
       STRUCTURE_ZONES_PENDING_CONFIRMATION_MAX_BARS: 0,
