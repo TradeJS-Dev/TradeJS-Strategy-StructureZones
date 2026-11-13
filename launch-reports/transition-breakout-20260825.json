@@ -1,0 +1,24 @@
+{
+  "schema": "tradejs-launch-report/v1",
+  "strategy": "StructureZones",
+  "candidate": "Transition breakout with own gate",
+  "sourceSha256": "221ad76a26709271beb248335450ffda95072d3e2c600a06965c1c9f1296505e",
+  "metrics": {
+    "trades": 118,
+    "pnl": 331.2000000000001,
+    "maxDrawdown": 43.64999999999998,
+    "maxLossStreak": 4,
+    "profitFactor": 1.7563370632564503,
+    "winRatePercent": 63.559322033898304,
+    "maxDrawdownDurationDays": 86.36458333333333
+  },
+  "researchRiskUsdt": 10,
+  "period": {
+    "start": 1691452800000,
+    "end": 1787508000000
+  },
+  "chart": {
+    "caption": "Historical cumulative P&L and drawdown from peak, in USDT.",
+    "sha256": "6a764503c7b356e450f5d6c0b7873f2c5baee5cdaf1f1a009a94c5fe4988e1e8"
+  }
+}
